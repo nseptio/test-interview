@@ -5,16 +5,12 @@ on:
     branches:
       - main
     paths:
-      - "case3-umkm/frontend/**" # only trigger when something in Frontend changes
+      - "case3-umkm/frontend/**"
 
 jobs:
   build:
     name: Build Frontend
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: case3-umkm/frontend
 
     steps:
       - name: Checkout repo
@@ -24,12 +20,20 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 22
+          cache: "pnpm"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
       - name: Install dependencies
-        uses: bahmutov/npm-install@v1
+        run: pnpm install --frozen-lockfile
+        working-directory: case3-umkm/frontend
 
       - name: Build project
-        run: npm run build
+        run: pnpm build
+        working-directory: case3-umkm/frontend
         env:
           VITE_SERVICE_ID: ${{ secrets.VITE_SERVICE_ID }}
           VITE_TEMPLATE_ID: ${{ secrets.VITE_TEMPLATE_ID }}
@@ -43,7 +47,7 @@ jobs:
           path: case3-umkm/frontend/dist
 
   deploy:
-    name: Deploy Frontend
+    name: Deploy to GitHub Pages
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
@@ -53,7 +57,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: production-files
-          path: ./dist # download to root ./dist
+          path: ./dist
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
